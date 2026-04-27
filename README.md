@@ -33,8 +33,3 @@ npm run build
 ```
 
 构建产物位于 `dist/`，可部署到 Nginx、静态托管（如 Vercel、Netlify）或任意静态服务器。
-
-## 接口说明
-
-- 股票：东方财富 `push2his`（通常支持跨域）
-- 基金：东方财富 `api.fund.eastmoney.com/f10/lsjz`（可能跨域，可配置代理前缀）

@@ -50,26 +50,10 @@ const displaySymbol = computed(() => model.value.symbol.trim().toUpperCase() || 
 const isPositive = computed(() => result.value.returnRate >= 0);
 const targetEndDate = computed(() => dayjs().subtract(1, "day").format("YYYY-MM-DD"));
 const readyToShare = computed(() => result.value.endDate !== "--");
-const hasSummary = computed(() => summaryText.value.trim().length > 0);
 const modelConfig = computed(() => {
-  const apiKey =
-    env.VITE_LLM_API_KEY ||
-    env.VITE_OPENAI_API_KEY ||
-    env.VITE_MODEL_API_KEY ||
-    env.VITE_LONGCAT_API_KEY ||
-    "";
-  const baseUrl =
-    env.VITE_LLM_BASE_URL ||
-    env.VITE_OPENAI_BASE_URL ||
-    env.VITE_MODEL_BASE_URL ||
-    env.VITE_LONGCAT_BASE_URL ||
-    "https://api.longcat.chat/openai/v1";
-  const modelId =
-    env.VITE_LLM_MODEL_ID ||
-    env.VITE_OPENAI_MODEL ||
-    env.VITE_MODEL_ID ||
-    env.VITE_LONGCAT_MODEL_ID ||
-    "LongCat-Flash-Chat";
+  const apiKey = env.VITE_LLM_API_KEY || env.VITE_OPENAI_API_KEY || env.VITE_MODEL_API_KEY || "";
+  const baseUrl = env.VITE_LLM_BASE_URL || env.VITE_OPENAI_BASE_URL || env.VITE_MODEL_BASE_URL || "https://api.openai.com/v1";
+  const modelId = env.VITE_LLM_MODEL_ID || env.VITE_OPENAI_MODEL || env.VITE_MODEL_ID || "gpt-4o-mini";
   return {
     apiKey: String(apiKey || "").trim(),
     baseUrl: String(baseUrl || "").trim().replace(/\/+$/, ""),
@@ -84,7 +68,7 @@ const summaryCards = computed(() => [
   { label: "累计盈亏", value: signedMoney(result.value.profit), hint: result.value.endDate === "--" ? "等待回放" : "按持仓数量自动计算", tone: result.value.profit >= 0 ? "up" : "down" },
   { label: "累计收益率", value: result.value.endDate === "--" ? "--" : pct(result.value.returnRate), hint: isPositive.value ? "当前为正收益" : "当前为负收益", tone: isPositive.value ? "up" : "down" }
 ]);
-const shareText = computed(() => summaryText.value.trim());
+const shareText = computed(() => (summaryText.value || buildFallbackShareText()).trim());
 
 onMounted(async () => {
   await resolveInstrument();
@@ -372,16 +356,16 @@ async function generateShareSummary() {
   if (!readyToShare.value) return;
   summaryLoading.value = true;
   summaryStatus.value = "正在用暴躁老哥语气生成复盘摘要...";
-  summaryText.value = "";
 
   try {
     const config = modelConfig.value;
     if (!config.complete) {
-      throw new Error("未检测到模型环境变量（VITE_LLM_API_KEY / VITE_LLM_BASE_URL / VITE_LLM_MODEL_ID）");
+      summaryText.value = buildFallbackShareText();
+      summaryStatus.value = "未检测到模型环境变量，已使用本地摘要。";
+      return;
     }
 
-    const endpoint = resolveChatCompletionsEndpoint(config.baseUrl);
-    const response = await fetch(endpoint, {
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -389,7 +373,6 @@ async function generateShareSummary() {
       },
       body: JSON.stringify({
         model: config.modelId,
-        max_tokens: 1000,
         temperature: 0.7,
         messages: [
           {
@@ -413,15 +396,10 @@ async function generateShareSummary() {
     summaryStatus.value = `摘要已由 ${config.modelId} 生成（暴躁老哥风格）。`;
   } catch (error) {
     summaryText.value = buildFallbackShareText();
-    summaryStatus.value = `模型调用失败，已使用兜底文案：${error.message}`;
+    summaryStatus.value = `模型调用失败，已回退本地摘要：${error.message}`;
   } finally {
     summaryLoading.value = false;
   }
-}
-
-function resolveChatCompletionsEndpoint(baseUrl) {
-  if (baseUrl.endsWith("/chat/completions")) return baseUrl;
-  return `${baseUrl}/chat/completions`;
 }
 
 function buildSummaryPrompt() {
@@ -436,19 +414,21 @@ function buildSummaryPrompt() {
     `累计盈亏：${signedMoney(result.value.profit)}`,
     `累计收益率：${pct(result.value.returnRate)}`,
     "语气要求：暴躁老哥，短句、狠一点、但信息要准确。",
-    "任务目标：对这笔持仓做评价，不要机械复述参数，不要逐行抄数据。",
     "输出要求：",
-    "1. 3-5 行中文，像真人在复盘吐槽",
-    "2. 先给总体评价，再讲风险点，最后给后续观察建议（非投资建议）",
-    "3. 每行尽量有观点，不要只报数字"
+    "1. 3-5 行中文",
+    "2. 第一行给收益结论",
+    "3. 第二行写波动或风险感受",
+    "4. 第三行给后续观察点（非投资建议）"
   ].join("\n");
 }
 
 function buildFallbackShareText() {
   return [
-    `兄弟你这单子看着真让人上火：${detected.value.text} ${displaySymbol.value} ${instrumentName.value}`,
-    `回放区间 ${result.value.effectiveBuyDate} 到 ${result.value.endDate}，收益率 ${pct(result.value.returnRate)}。`,
-    `别光盯收益，波动也得盯住，下一步先把仓位节奏想明白再动。`
+    `兄弟你这仓位我看完都拍桌子了：${detected.value.text} ${displaySymbol.value} ${instrumentName.value}`,
+    `回放区间：${result.value.effectiveBuyDate} 至 ${result.value.endDate}`,
+    `买入成本 ${money(result.value.startValue)}，当前市值 ${money(result.value.endValue)}。`,
+    `累计盈亏 ${signedMoney(result.value.profit)}，累计收益率 ${pct(result.value.returnRate)}。`,
+    "接下来盯住波动和量能节奏，仓位计划先写清楚再行动。"
   ].join("\n");
 }
 
@@ -592,10 +572,6 @@ function createShareCanvas() {
 async function share() {
   if (!readyToShare.value) {
     ElMessage.warning("请先完成一次回放计算。");
-    return;
-  }
-  if (!hasSummary.value) {
-    ElMessage.warning("请先成功生成 AI 复盘摘要。");
     return;
   }
 
@@ -747,15 +723,14 @@ function pct(v) {
             <div class="share-title-row">
               <div>
                 <span class="panel-kicker">分享摘要</span>
-                <h2>AI 生成的持仓复盘文案（暴躁老哥）</h2>
+                <h2>AI锐评</h2>
               </div>
               <el-button plain class="refresh-button" :loading="summaryLoading" @click="generateShareSummary">重新生成</el-button>
             </div>
 
             <div class="summary-text-box">
               <p v-if="summaryLoading">正在调用模型生成摘要，请稍候...</p>
-              <p v-else-if="hasSummary">{{ shareText }}</p>
-              <p v-else>模型评价尚未生成成功，请检查模型配置或点击“重新生成”。</p>
+              <p v-else>{{ shareText }}</p>
             </div>
             <small class="summary-status">{{ summaryStatus }}</small>
           </div>
