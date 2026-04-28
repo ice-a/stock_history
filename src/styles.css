@@ -252,12 +252,15 @@ textarea {
 
 .replay-shell {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .replay-toolbar {
   padding: 20px;
   border-radius: 24px;
+  position: sticky;
+  top: 14px;
+  z-index: 6;
 }
 
 .replay-grid {
@@ -273,7 +276,7 @@ textarea {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(180px, 1fr));
   gap: 14px;
 }
 
@@ -283,6 +286,13 @@ textarea {
   min-height: 148px;
   padding: 18px;
   border-radius: 18px;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(249, 115, 22, 0.32);
+  background: rgba(11, 21, 37, 0.92);
 }
 
 .summary-card strong {
@@ -352,15 +362,17 @@ textarea {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
     rgba(5, 12, 24, 0.72);
+  overflow: hidden;
 }
 
 .share-panel {
   padding: 22px;
   border-radius: 24px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   justify-content: space-between;
   gap: 18px;
-  align-items: flex-end;
+  align-items: start;
 }
 
 .share-copy {
@@ -415,6 +427,7 @@ textarea {
   border-radius: 14px;
   background: var(--panel-strong);
   padding: 16px;
+  min-height: 144px;
 }
 
 .summary-text-box p {
@@ -433,6 +446,8 @@ textarea {
 .share-actions {
   display: grid;
   gap: 12px;
+  min-width: 240px;
+  align-self: end;
 }
 
 .share-actions .el-segmented {
@@ -498,10 +513,13 @@ textarea {
   }
 
   .chart-panel-header,
-  .share-panel,
   .share-title-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .share-panel {
+    grid-template-columns: 1fr;
   }
 
   .chart-badge {
@@ -541,6 +559,10 @@ textarea {
   .replay-grid,
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .replay-toolbar {
+    position: static;
   }
 
   .intro-actions {

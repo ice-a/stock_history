@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
@@ -396,7 +396,7 @@ async function generateShareSummary() {
     summaryStatus.value = `摘要已由 ${config.modelId} 生成（暴躁老哥风格）。`;
   } catch (error) {
     summaryText.value = buildFallbackShareText();
-    summaryStatus.value = `模型调用失败，已回退本地摘要：${error.message}`;
+    summaryStatus.value = `Model call failed, fallback summary used: ${String(error?.message || error)}`;
   } finally {
     summaryLoading.value = false;
   }
@@ -752,3 +752,4 @@ function pct(v) {
     </Transition>
   </main>
 </template>
+
