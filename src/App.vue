@@ -233,7 +233,7 @@ async function run() {
 }
 
 function validateInput() {
-  if (!model.value.symbol.trim()) throw new Error("请输入标的代码。");
+  if (!model.value.symbol.trim()) throw new Error("请输入股票代码。");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(model.value.buyDate)) throw new Error("买入日期格式应为 YYYY-MM-DD。");
   if (!Number.isFinite(Number(model.value.quantity)) || Number(model.value.quantity) <= 0) throw new Error("持仓数量必须大于 0。");
 }
@@ -608,7 +608,7 @@ function pct(v) {
         <div class="intro-copy">
           <span class="eyebrow">Portfolio Playback</span>
           <h1>让每一笔买入，都能被重新复盘。</h1>
-          <p>输入标的代码、买入日期和持仓数量，点击回放后查看走势与 AI 分享摘要。</p>
+          <p>输入股票代码、买入日期和持仓数量，点击回放后查看走势与 AI 分享摘要。</p>
         </div>
 
         <div class="intro-form-wrap">
@@ -626,7 +626,7 @@ function pct(v) {
           </div>
 
           <el-form class="control-grid" label-position="top">
-            <el-form-item label="标的代码">
+            <el-form-item label="股票代码">
               <el-input v-model="model.symbol" size="large" placeholder="600519 / 00700 / AAPL / 161725" />
             </el-form-item>
             <el-form-item label="买入日期">
@@ -646,7 +646,7 @@ function pct(v) {
       <section v-else key="replay" class="replay-shell">
         <section class="replay-toolbar">
           <el-form class="replay-grid" label-position="top">
-            <el-form-item label="标的代码">
+            <el-form-item label="股票代码">
               <el-input v-model="model.symbol" size="large" />
             </el-form-item>
             <el-form-item label="买入日期">
