@@ -7,8 +7,6 @@ import { ElMessage } from "element-plus";
 
 dayjs.locale("zh-cn");
 
-const env = import.meta.env;
-
 const model = ref({
   symbol: "600519",
   buyDate: "2020-01-02",
@@ -50,17 +48,6 @@ const displaySymbol = computed(() => model.value.symbol.trim().toUpperCase() || 
 const isPositive = computed(() => result.value.returnRate >= 0);
 const targetEndDate = computed(() => dayjs().subtract(1, "day").format("YYYY-MM-DD"));
 const readyToShare = computed(() => result.value.endDate !== "--");
-const modelConfig = computed(() => {
-  const apiKey = env.VITE_LLM_API_KEY || env.VITE_OPENAI_API_KEY || env.VITE_MODEL_API_KEY || "";
-  const baseUrl = env.VITE_LLM_BASE_URL || env.VITE_OPENAI_BASE_URL || env.VITE_MODEL_BASE_URL || "https://api.openai.com/v1";
-  const modelId = env.VITE_LLM_MODEL_ID || env.VITE_OPENAI_MODEL || env.VITE_MODEL_ID || "gpt-4o-mini";
-  return {
-    apiKey: String(apiKey || "").trim(),
-    baseUrl: String(baseUrl || "").trim().replace(/\/+$/, ""),
-    modelId: String(modelId || "").trim(),
-    complete: Boolean(apiKey && baseUrl && modelId)
-  };
-});
 const summaryCards = computed(() => [
   { label: "持仓数量", value: `${money(model.value.quantity)} 份/股`, hint: "用于计算成本与市值" },
   { label: "买入成本", value: money(result.value.startValue), hint: result.value.buyPrice ? `买入净值 ${money(result.value.buyPrice)}` : "等待回放" },
@@ -358,42 +345,27 @@ async function generateShareSummary() {
   summaryStatus.value = "正在用暴躁老哥语气生成复盘摘要...";
 
   try {
-    const config = modelConfig.value;
-    if (!config.complete) {
-      summaryText.value = buildFallbackShareText();
-      summaryStatus.value = "未检测到模型环境变量，已使用本地摘要。";
-      return;
-    }
-
-    const response = await fetch(`${config.baseUrl}/chat/completions`, {
+    const response = await fetch("/api/chat", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: config.modelId,
-        temperature: 0.7,
         messages: [
-          {
-            role: "system",
-            content: "你是投资复盘吐槽助手，语气像暴躁老哥：直白、犀利、带点火气，但不低俗不辱骂。"
-          },
-          {
-            role: "user",
-            content: buildSummaryPrompt()
-          }
+          { role: "system", content: "你是投资复盘吐槽助手，语气像暴躁老哥：直白、犀利、带点火气，但不低俗不辱骂。" },
+          { role: "user", content: buildSummaryPrompt() }
         ]
       })
     });
 
-    if (!response.ok) throw new Error(`模型请求失败（${response.status}）`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `请求失败（${response.status}）`);
+    }
     const data = await response.json();
     const content = data?.choices?.[0]?.message?.content?.trim();
     if (!content) throw new Error("模型返回为空");
 
     summaryText.value = content;
-    summaryStatus.value = `摘要已由 ${config.modelId} 生成（暴躁老哥风格）。`;
+    summaryStatus.value = "摘要已由 AI 生成（暴躁老哥风格）。";
   } catch (error) {
     summaryText.value = buildFallbackShareText();
     summaryStatus.value = `模型调用失败，已回退本地摘要：${error.message}`;
