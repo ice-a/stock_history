@@ -432,6 +432,10 @@ function buildFallbackShareText() {
   ].join("\n");
 }
 
+function proxyUrl(target) {
+  return `/api/proxy?url=${encodeURIComponent(target)}`;
+}
+
 function toTencentCode(market, symbol) {
   if (market === "HK") return `hk${symbol.padStart(5, "0")}`;
   if (market === "A") {
@@ -445,8 +449,7 @@ function toTencentCode(market, symbol) {
 
 async function fetchStockName(market, symbol) {
   const code = toTencentCode(market, symbol);
-  const url = `/gtimg/q=${code}`;
-  const res = await fetch(url);
+  const res = await fetch(proxyUrl(`https://qt.gtimg.cn/q=${code}`));
   if (!res.ok) throw new Error(`请求失败，状态码 ${res.status}`);
   const buf = await res.arrayBuffer();
   const text = new TextDecoder("gbk").decode(buf);
@@ -457,8 +460,7 @@ async function fetchStockName(market, symbol) {
 }
 
 async function fetchFundName(symbol) {
-  const url = `/fundsuggest/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(symbol)}`;
-  const json = await fetchJson(url);
+  const json = await fetchJson(proxyUrl(`https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(symbol)}`));
   const first = Array.isArray(json?.Datas) ? json.Datas[0] : null;
   const name = first?.NAME || first?.FundBaseInfo?.SHORTNAME;
   if (!name) throw new Error("fund name missing");
@@ -467,8 +469,7 @@ async function fetchFundName(symbol) {
 
 async function fetchStockSeries(market, symbol, startDate, endDateValue) {
   const code = toTencentCode(market, symbol);
-  const url = `/ifzq/appstock/app/fqkline/get?param=${code},day,${startDate},${endDateValue},2000,qfq`;
-  const json = await fetchJson(url);
+  const json = await fetchJson(proxyUrl(`https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${code},day,${startDate},${endDateValue},2000,qfq`));
   const entry = json?.data?.[code];
   if (!entry) throw new Error("股票历史数据返回为空。");
   const days = entry.day || entry.qfqday || [];
@@ -485,8 +486,7 @@ async function fetchFundSeries(symbol, startDate, endDateValue) {
   let total = 1;
 
   while ((page - 1) * pageSize < total) {
-    const url = `/fundapi/f10/lsjz?fundCode=${encodeURIComponent(symbol)}&pageIndex=${page}&pageSize=${pageSize}&startDate=${startDate}&endDate=${endDateValue}`;
-    const json = await fetchJson(url, { Referer: "https://fundf10.eastmoney.com/" });
+    const json = await fetchJson(proxyUrl(`https://api.fund.eastmoney.com/f10/lsjz?fundCode=${encodeURIComponent(symbol)}&pageIndex=${page}&pageSize=${pageSize}&startDate=${startDate}&endDate=${endDateValue}`), { Referer: "https://fundf10.eastmoney.com/" });
     if (!json || Number(json.ErrCode) !== 0 || !json.Data) throw new Error("基金历史数据请求失败。");
 
     total = Number(json.TotalCount || 0);
