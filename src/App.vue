@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
@@ -137,7 +137,7 @@ function detectCandidates(symbolRaw) {
   const symbol = symbolRaw.trim().toUpperCase();
   if (!symbol) return [];
   if (/^(SH|SZ)\d{6}$/.test(symbol)) return [{ kind: "stock", market: "A", symbol }];
-  if (/^\d{5}$/.test(symbol)) return [{ kind: "stock", market: "HK", symbol }];
+  if (/^\d{5}$/.test(symbol)) return [{ kind: "stock", market: "HK", symbol }, { kind: "fund", market: "FUND", symbol }];
   if (/^[A-Z][A-Z0-9.\-]{0,9}$/.test(symbol)) return [{ kind: "stock", market: "US", symbol }];
   if (/^\d{6}$/.test(symbol)) return [{ kind: "stock", market: "A", symbol }, { kind: "fund", market: "FUND", symbol }];
   return [{ kind: "fund", market: "FUND", symbol }];
@@ -396,7 +396,7 @@ async function generateShareSummary() {
     summaryStatus.value = `摘要已由 ${config.modelId} 生成（暴躁老哥风格）。`;
   } catch (error) {
     summaryText.value = buildFallbackShareText();
-    summaryStatus.value = `Model call failed, fallback summary used: ${String(error?.message || error)}`;
+    summaryStatus.value = `模型调用失败，已回退本地摘要：${error.message}`;
   } finally {
     summaryLoading.value = false;
   }
@@ -432,17 +432,32 @@ function buildFallbackShareText() {
   ].join("\n");
 }
 
+function toTencentCode(market, symbol) {
+  if (market === "HK") return `hk${symbol.padStart(5, "0")}`;
+  if (market === "A") {
+    if (/^SH/i.test(symbol)) return `sh${symbol.slice(2)}`;
+    if (/^SZ/i.test(symbol)) return `sz${symbol.slice(2)}`;
+    return `${["5", "6", "9"].includes(symbol[0]) ? "sh" : "sz"}${symbol}`;
+  }
+  if (market === "US") return `us${symbol}`;
+  throw new Error(`暂不支持的市场类型：${market}`);
+}
+
 async function fetchStockName(market, symbol) {
-  const secid = toSecid(market, symbol);
-  const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52`;
-  const json = await fetchJson(url);
-  const name = json?.data?.name;
+  const code = toTencentCode(market, symbol);
+  const url = `/gtimg/q=${code}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`请求失败，状态码 ${res.status}`);
+  const buf = await res.arrayBuffer();
+  const text = new TextDecoder("gbk").decode(buf);
+  const fields = text.split("~");
+  const name = fields[1];
   if (!name) throw new Error("stock name missing");
   return name;
 }
 
 async function fetchFundName(symbol) {
-  const url = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(symbol)}`;
+  const url = `/fundsuggest/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(symbol)}`;
   const json = await fetchJson(url);
   const first = Array.isArray(json?.Datas) ? json.Datas[0] : null;
   const name = first?.NAME || first?.FundBaseInfo?.SHORTNAME;
@@ -451,17 +466,15 @@ async function fetchFundName(symbol) {
 }
 
 async function fetchStockSeries(market, symbol, startDate, endDateValue) {
-  const secid = toSecid(market, symbol);
-  const beg = startDate.replaceAll("-", "");
-  const end = endDateValue.replaceAll("-", "");
-  const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&klt=101&fqt=1&beg=${beg}&end=${end}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&ut=7eea3edcaed734bea9cbfc24409ed989`;
+  const code = toTencentCode(market, symbol);
+  const url = `/ifzq/appstock/app/fqkline/get?param=${code},day,${startDate},${endDateValue},2000,qfq`;
   const json = await fetchJson(url);
-  if (!json?.data?.klines) throw new Error("股票历史数据返回为空。");
-  return json.data.klines
-    .map((line) => {
-      const parts = String(line).split(",");
-      return { date: parts[0], price: Number(parts[2]) };
-    })
+  const entry = json?.data?.[code];
+  if (!entry) throw new Error("股票历史数据返回为空。");
+  const days = entry.day || entry.qfqday || [];
+  if (!days.length) throw new Error("股票历史数据返回为空。");
+  return days
+    .map((item) => ({ date: item[0], price: Number(item[2]) }))
     .filter((item) => item.date && Number.isFinite(item.price));
 }
 
@@ -472,7 +485,7 @@ async function fetchFundSeries(symbol, startDate, endDateValue) {
   let total = 1;
 
   while ((page - 1) * pageSize < total) {
-    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${encodeURIComponent(symbol)}&pageIndex=${page}&pageSize=${pageSize}&startDate=${startDate}&endDate=${endDateValue}`;
+    const url = `/fundapi/f10/lsjz?fundCode=${encodeURIComponent(symbol)}&pageIndex=${page}&pageSize=${pageSize}&startDate=${startDate}&endDate=${endDateValue}`;
     const json = await fetchJson(url, { Referer: "https://fundf10.eastmoney.com/" });
     if (!json || Number(json.ErrCode) !== 0 || !json.Data) throw new Error("基金历史数据请求失败。");
 
@@ -489,18 +502,6 @@ async function fetchFundSeries(symbol, startDate, endDateValue) {
 
   rows.sort((a, b) => a.date.localeCompare(b.date));
   return rows;
-}
-
-function toSecid(market, symbol) {
-  if (market === "US") return `105.${symbol}`;
-  if (market === "HK") return `116.${symbol.padStart(5, "0")}`;
-  if (market === "A") {
-    if (/^SH\d{6}$/i.test(symbol)) return `1.${symbol.slice(2)}`;
-    if (/^SZ\d{6}$/i.test(symbol)) return `0.${symbol.slice(2)}`;
-    if (!/^\d{6}$/.test(symbol)) throw new Error(`A 股代码格式不正确：${symbol}`);
-    return `${["5", "6", "9"].includes(symbol[0]) ? 1 : 0}.${symbol}`;
-  }
-  throw new Error(`暂不支持的市场类型：${market}`);
 }
 
 async function fetchJson(url, extraHeaders = {}) {
@@ -752,4 +753,3 @@ function pct(v) {
     </Transition>
   </main>
 </template>
-

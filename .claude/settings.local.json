@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=116.07709&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52&ut=fa5fd1943c7b386f172d6893dbfba10b\")",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/131.0.0.0 Safari/537.36\" \"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=116.07709&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52&ut=fa5fd1943c7b386f172d6893dbfba10b\")",
+      "Bash(curl -s --ssl-no-revoke -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" \"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=116.07709&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52&ut=fa5fd1943c7b386f172d6893dbfba10b\")",
+      "Bash(curl -s --ssl-no-revoke -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" \"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=116.00700&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52&ut=fa5fd1943c7b386f172d6893dbfba10b\")",
+      "WebSearch",
+      "Bash(curl -s --ssl-no-revoke -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" \"https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=07709\")",
+      "WebFetch(domain:push2his.eastmoney.com)",
+      "Bash(npx vite *)",
+      "Bash(curl -s --ssl-no-revoke -H \"User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/131.0.0.0 Safari/537.36\" -H \"Referer: https://quote.eastmoney.com/\" \"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=116.07709&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52&ut=fa5fd1943c7b386f172d6893dbfba10b\")",
+      "Bash(curl -s --ssl-no-revoke -H \"User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/131.0.0.0 Safari/537.36\" -H \"Referer: https://quote.eastmoney.com/\" \"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=116.00700&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52&ut=fa5fd1943c7b386f172d6893dbfba10b\")",
+      "Bash(curl -v --ssl-no-revoke -H \"User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" \"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=116.00700&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52&ut=fa5fd1943c7b386f172d6893dbfba10b\")",
+      "Bash(curl -v --ssl-no-revoke --tls-max 1.2 -H \"User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" \"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=116.00700&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52&ut=fa5fd1943c7b386f172d6893dbfba10b\")",
+      "Bash(curl -v --ssl-no-revoke -H \"User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/131.0.0.0 Safari/537.36\" -H \"Accept: */*\" -H \"Accept-Language: zh-CN,zh;q=0.9\" -H \"Accept-Encoding: gzip, deflate, br\" -H \"Connection: keep-alive\" --compressed \"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=116.00700&klt=101&fqt=1&lmt=1&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52&ut=fa5fd1943c7b386f172d6893dbfba10b\")",
+      "Bash(node *)"
+    ]
+  }
+}
